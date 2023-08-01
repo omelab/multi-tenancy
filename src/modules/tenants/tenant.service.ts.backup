@@ -1,0 +1,30 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaClient, Tenant } from '@prisma/client';
+import { CreateTenantDto } from './dto/create.dto';
+
+@Injectable()
+export class TenantService {
+  private prisma: PrismaClient;
+  //constructor(private readonly prisma: PrismaClient) {}
+
+  constructor() {
+    this.prisma = new PrismaClient();
+  }
+
+  getPrismaClient(tenant: Tenant): PrismaClient {
+    const tenantPrisma = new PrismaClient({
+      datasources: {
+        db: {
+          url: `postgresql://${tenant.dbUsername}:${tenant.dbPassword}@${tenant.dbHost}:${tenant.dbPort}/${tenant.dbName}`,
+        },
+      },
+    });
+    return tenantPrisma;
+  }
+
+  async createTenant(tenant: CreateTenantDto): Promise<Tenant> {
+    return this.prisma.tenant.create({
+      data: tenant,
+    });
+  }
+}

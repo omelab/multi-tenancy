@@ -1,0 +1,46 @@
+// tenant.middleware.ts
+
+import { Injectable, NestMiddleware } from '@nestjs/common';
+import { PrismaClient } from '@prisma/client';
+
+@Injectable()
+export class TenantMiddleware implements NestMiddleware {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  async use(req: any, res: any, next: () => void) {
+    const tenantSubdomain = req.headers.host.split('.')[0];
+
+    try {
+      const tenant = await this.prisma.tenant.findUnique({
+        where: { subdomain: tenantSubdomain },
+      });
+
+      if (!tenant) {
+        throw new Error('Tenant not found');
+      }
+
+      const tenantDBConfig = {
+        provider: 'postgresql',
+        host: tenant.dbHost,
+        port: tenant.dbPort,
+        user: tenant.dbUsername,
+        password: tenant.dbPassword,
+        database: tenant.dbName,
+      };
+
+      // // Update the PrismaClient configuration
+      this.prisma.$disconnect();
+      this.prisma.$connect(tenantDBConfig);
+
+      // // Attach the tenant and tenant database information to the request object
+      req.tenant = tenant;
+      req.prisma = this.prisma;
+
+      next();
+    } catch (error) {
+      // Handle errors, for example, redirect to an error page or return an error response
+      console.error(error);
+      res.status(500).json({ error: 'Internal Server Error' });
+    }
+  }
+}

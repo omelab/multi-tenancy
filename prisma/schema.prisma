@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int       @id @default(autoincrement())
+  username String    @unique
+  email    String    @unique
+  name     String?
+  password String
+  orders   Order[]
+  posts    Product[]
+
+  @@map("users")
+}
+
+model Tenant {
+  id         Int       @id @default(autoincrement())
+  name       String
+  subdomain  String    @unique
+  dbName     String
+  dbUsername String
+  dbPassword String
+  dbHost     String
+  dbPort     Int
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+
+  @@map("tenants")
+}
+
+model Product {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?
+  published Boolean? @default(false)
+  ownerId   Int?
+  owner     User?    @relation(fields: [ownerId], references: [id])
+
+  @@map("products")
+}
+
+model Order {
+  id         Int      @id @default(autoincrement())
+  title      String
+  content    String?
+  published  Boolean? @default(false)
+  customerId Int?
+  customer   User?    @relation(fields: [customerId], references: [id])
+
+  @@map("orders")
+}
